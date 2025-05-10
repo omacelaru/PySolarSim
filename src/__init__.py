@@ -1,3 +1,3 @@
 """
-Solar System Simulation package.
+PySolarSim - A Solar System Simulation Package
 """ 
