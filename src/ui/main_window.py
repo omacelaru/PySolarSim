@@ -8,6 +8,8 @@ from PyQt6.QtOpenGLWidgets import QOpenGLWidget
 from src.simulation.solar_system import SolarSystem
 import math
 import numpy as np
+from PyQt6.QtGui import QMouseEvent, QWheelEvent, QKeyEvent
+import random
 
 class GLWidget(QOpenGLWidget):
     def __init__(self, parent=None):
@@ -28,10 +30,22 @@ class GLWidget(QOpenGLWidget):
         self.ambient_light = 0.2
         self.diffuse_light = 1.0
         
+        # View mode
+        self.view_mode = 'Free Camera'
+        self.follow_distance = 8.0
+        
         # Setup animation timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.animate)
         self.timer.start(16)  # ~60 FPS
+        
+        self.last_mouse_pos = None
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        
+        self.stars = [
+            (random.uniform(-60, 60), random.uniform(-60, 60), random.uniform(-60, 60))
+            for _ in range(300)
+        ]
         
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -40,9 +54,13 @@ class GLWidget(QOpenGLWidget):
         glEnable(GL_LIGHT0)
         glEnable(GL_COLOR_MATERIAL)
         glEnable(GL_NORMALIZE)
+        self.update_lighting()
         
-        # Set up light
-        glLightfv(GL_LIGHT0, GL_POSITION, (0, 0, 10, 1))
+    def update_lighting(self):
+        # Place light at the sun's position
+        sun = self.solar_system.get_bodies()[0]
+        sun_pos = sun.get_position()
+        glLightfv(GL_LIGHT0, GL_POSITION, (sun_pos[0], sun_pos[1], sun_pos[2], 1.0))
         glLightfv(GL_LIGHT0, GL_AMBIENT, (self.ambient_light, self.ambient_light, self.ambient_light, 1))
         glLightfv(GL_LIGHT0, GL_DIFFUSE, (self.diffuse_light, self.diffuse_light, self.diffuse_light, 1))
         
@@ -80,11 +98,41 @@ class GLWidget(QOpenGLWidget):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
         
-        # Set up the camera
-        glTranslatef(0.0, 0.0, -self.camera_distance)
-        glRotatef(self.camera_rotation_x, 1.0, 0.0, 0.0)
-        glRotatef(self.camera_rotation_y, 0.0, 1.0, 0.0)
-        glRotatef(self.camera_rotation_z, 0.0, 0.0, 1.0)
+        # Camera logic based on view mode
+        if self.view_mode == 'Free Camera':
+            glTranslatef(0.0, 0.0, -self.camera_distance)
+            glRotatef(self.camera_rotation_x, 1.0, 0.0, 0.0)
+            glRotatef(self.camera_rotation_y, 0.0, 1.0, 0.0)
+            glRotatef(self.camera_rotation_z, 0.0, 0.0, 1.0)
+        elif self.view_mode == 'Top View':
+            glTranslatef(0.0, 0.0, -self.camera_distance)
+            glRotatef(90, 1.0, 0.0, 0.0)
+        elif self.view_mode == 'Follow Planet' and self.selected_body is not None:
+            pos = self.selected_body.get_position()
+            if self.selected_body.name.lower() == 'sun':
+                # For Sun, offset on Z axis
+                cam_pos = pos + np.array([0.0, 0.0, self.follow_distance])
+                up = np.array([0, 1, 0])
+            else:
+                # For planets, offset diagonally (X+Y+Z)
+                offset = np.array([1.0, 1.0, 1.0])
+                offset = offset / np.linalg.norm(offset) * self.follow_distance
+                cam_pos = pos + offset
+                up = np.array([0, 0, 1])
+            gluLookAt(cam_pos[0], cam_pos[1], cam_pos[2],
+                      pos[0], pos[1], pos[2],
+                      up[0], up[1], up[2])
+        
+        # Draw starry background
+        glDisable(GL_LIGHTING)
+        glPointSize(1.5)
+        glBegin(GL_POINTS)
+        glColor3f(1.0, 1.0, 1.0)
+        for x, y, z in self.stars:
+            glVertex3f(x, y, z)
+        glEnd()
+        glEnable(GL_LIGHTING)
+        self.update_lighting()
         
         # Draw all celestial bodies
         for body in self.solar_system.get_bodies():
@@ -137,9 +185,98 @@ class GLWidget(QOpenGLWidget):
     def set_lighting(self, ambient, diffuse):
         self.ambient_light = ambient
         self.diffuse_light = diffuse
-        glLightfv(GL_LIGHT0, GL_AMBIENT, (ambient, ambient, ambient, 1))
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, (diffuse, diffuse, diffuse, 1))
+        self.update_lighting()
         self.update()
+
+    def set_view_mode(self, mode):
+        self.view_mode = mode
+        self.update()
+
+    def set_follow_distance(self, distance):
+        self.follow_distance = distance
+        self.update()
+
+    def mousePressEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.last_mouse_pos = event.position()
+    def mouseMoveEvent(self, event: QMouseEvent):
+        if self.last_mouse_pos is not None and self.parent().parent().view_combo.currentText() == 'Free Camera':
+            delta = event.position() - self.last_mouse_pos
+            self.last_mouse_pos = event.position()
+            self.camera_rotation_x += delta.y() * 0.3
+            self.camera_rotation_y += delta.x() * 0.3
+            # Clamp X rotation
+            self.camera_rotation_x = max(-90, min(90, self.camera_rotation_x))
+            # Sync sliders if present
+            mw = self.parent().parent()
+            mw.rot_x_slider.setValue(int(self.camera_rotation_x))
+            mw.rot_y_slider.setValue(int(self.camera_rotation_y))
+            self.update()
+    def mouseReleaseEvent(self, event: QMouseEvent):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.last_mouse_pos = None
+    def wheelEvent(self, event: QWheelEvent):
+        if self.parent().parent().view_combo.currentText() in ['Free Camera', 'Top View']:
+            delta = event.angleDelta().y() / 120  # 1 step per notch
+            self.camera_distance -= delta
+            self.camera_distance = max(2, min(100, self.camera_distance))
+            # Sync slider
+            mw = self.parent().parent()
+            mw.dist_slider.setValue(int(self.camera_distance))
+            self.update()
+        elif self.parent().parent().view_combo.currentText() == 'Follow Planet':
+            delta = event.angleDelta().y() / 120
+            self.follow_distance -= delta
+            self.follow_distance = max(2, min(30, self.follow_distance))
+            mw = self.parent().parent()
+            mw.follow_dist_slider.setValue(int(self.follow_distance))
+            self.update()
+    def keyPressEvent(self, event: QKeyEvent):
+        key = event.key()
+        step = 5
+        zstep = 5
+        zoomstep = 1
+        mode = self.parent().parent().view_combo.currentText()
+        if mode in ['Free Camera', 'Top View']:
+            if key in [Qt.Key.Key_W, Qt.Key.Key_Up]:
+                self.camera_rotation_x -= step
+                self.camera_rotation_x = max(-90, min(90, self.camera_rotation_x))
+                self.parent().parent().rot_x_slider.setValue(int(self.camera_rotation_x))
+            elif key in [Qt.Key.Key_S, Qt.Key.Key_Down]:
+                self.camera_rotation_x += step
+                self.camera_rotation_x = max(-90, min(90, self.camera_rotation_x))
+                self.parent().parent().rot_x_slider.setValue(int(self.camera_rotation_x))
+            elif key in [Qt.Key.Key_A, Qt.Key.Key_Left]:
+                self.camera_rotation_y -= step
+                self.parent().parent().rot_y_slider.setValue(int(self.camera_rotation_y))
+            elif key in [Qt.Key.Key_D, Qt.Key.Key_Right]:
+                self.camera_rotation_y += step
+                self.parent().parent().rot_y_slider.setValue(int(self.camera_rotation_y))
+            elif key == Qt.Key.Key_Q:
+                self.camera_rotation_z -= zstep
+                self.parent().parent().rot_z_slider.setValue(int(self.camera_rotation_z))
+            elif key == Qt.Key.Key_E:
+                self.camera_rotation_z += zstep
+                self.parent().parent().rot_z_slider.setValue(int(self.camera_rotation_z))
+            elif key in [Qt.Key.Key_Plus, Qt.Key.Key_Equal, Qt.Key.Key_PageUp]:
+                self.camera_distance -= zoomstep
+                self.camera_distance = max(2, min(100, self.camera_distance))
+                self.parent().parent().dist_slider.setValue(int(self.camera_distance))
+            elif key in [Qt.Key.Key_Minus, Qt.Key.Key_PageDown]:
+                self.camera_distance += zoomstep
+                self.camera_distance = max(2, min(100, self.camera_distance))
+                self.parent().parent().dist_slider.setValue(int(self.camera_distance))
+            self.update()
+        elif mode == 'Follow Planet':
+            if key in [Qt.Key.Key_Plus, Qt.Key.Key_Equal, Qt.Key.Key_PageUp]:
+                self.follow_distance -= zoomstep
+                self.follow_distance = max(2, min(30, self.follow_distance))
+                self.parent().parent().follow_dist_slider.setValue(int(self.follow_distance))
+            elif key in [Qt.Key.Key_Minus, Qt.Key.Key_PageDown]:
+                self.follow_distance += zoomstep
+                self.follow_distance = max(2, min(30, self.follow_distance))
+                self.parent().parent().follow_dist_slider.setValue(int(self.follow_distance))
+            self.update()
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -163,15 +300,11 @@ class MainWindow(QMainWindow):
         # Simulation Controls
         sim_group = QGroupBox("Simulation Controls")
         sim_layout = QVBoxLayout()
-        
-        # Play/Pause button
         self.play_button = QPushButton("Pause")
         self.play_button.setCheckable(True)
         self.play_button.setChecked(True)
         self.play_button.clicked.connect(self.toggle_simulation)
         sim_layout.addWidget(self.play_button)
-        
-        # Speed control
         speed_layout = QHBoxLayout()
         speed_layout.addWidget(QLabel("Speed:"))
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
@@ -181,9 +314,31 @@ class MainWindow(QMainWindow):
         self.speed_slider.valueChanged.connect(self.change_speed)
         speed_layout.addWidget(self.speed_slider)
         sim_layout.addLayout(speed_layout)
-        
         sim_group.setLayout(sim_layout)
         control_layout.addWidget(sim_group)
+        
+        # View Mode Controls
+        view_group = QGroupBox("View Mode")
+        view_layout = QVBoxLayout()
+        view_layout.addWidget(QLabel("View Mode:"))
+        self.view_combo = QComboBox()
+        self.view_combo.addItems(["Free Camera", "Follow Planet", "Top View"])
+        self.view_combo.currentTextChanged.connect(self.change_view_mode)
+        view_layout.addWidget(self.view_combo)
+        
+        # Follow Distance slider (hidden by default)
+        self.follow_dist_layout = QHBoxLayout()
+        self.follow_dist_label = QLabel("Follow Distance:")
+        self.follow_dist_slider = QSlider(Qt.Orientation.Horizontal)
+        self.follow_dist_slider.setMinimum(2)
+        self.follow_dist_slider.setMaximum(30)
+        self.follow_dist_slider.setValue(8)
+        self.follow_dist_slider.valueChanged.connect(self.change_follow_distance)
+        self.follow_dist_layout.addWidget(self.follow_dist_label)
+        self.follow_dist_layout.addWidget(self.follow_dist_slider)
+        view_layout.addLayout(self.follow_dist_layout)
+        view_group.setLayout(view_layout)
+        control_layout.addWidget(view_group)
         
         # Camera Controls
         camera_group = QGroupBox("Camera Controls")
@@ -282,6 +437,9 @@ class MainWindow(QMainWindow):
         control_layout.addStretch()
         layout.addWidget(control_panel, stretch=1)
         
+        # Initial UI state
+        self.update_view_mode_ui('Free Camera')
+        
     def toggle_simulation(self, checked):
         self.gl_widget.toggle_simulation(checked)
         self.play_button.setText("Play" if not checked else "Pause")
@@ -316,3 +474,29 @@ class MainWindow(QMainWindow):
                 info += f"Orbital Inclination: {math.degrees(body.orbital_inclination):.2f}°"
                 self.info_label.setText(info)
                 break 
+
+    def change_view_mode(self, mode):
+        self.gl_widget.set_view_mode(mode)
+        self.update_view_mode_ui(mode)
+
+    def update_view_mode_ui(self, mode):
+        # Show/hide controls based on view mode
+        is_free = (mode == 'Free Camera')
+        is_follow = (mode == 'Follow Planet')
+        is_top = (mode == 'Top View')
+        # Camera controls
+        self.dist_slider.setEnabled(is_free or is_top)
+        self.rot_x_slider.setEnabled(is_free)
+        self.rot_y_slider.setEnabled(is_free)
+        self.rot_z_slider.setEnabled(is_free)
+        # Follow distance slider
+        self.follow_dist_label.setVisible(is_follow)
+        self.follow_dist_slider.setVisible(is_follow)
+        for i in range(self.follow_dist_layout.count()):
+            widget = self.follow_dist_layout.itemAt(i).widget()
+            if widget:
+                widget.setVisible(is_follow)
+
+    def change_follow_distance(self, value):
+        self.gl_widget.set_follow_distance(value)
+        

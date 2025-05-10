@@ -6,7 +6,7 @@ A basic 3D solar system simulation built with Python, PyOpenGL, and PyQt6.
 
 - 3D visualization of a basic solar system
 - Real-time orbital motion simulation
-- Interactive camera controls
+- Interactive camera controls (mouse, keyboard, UI)
 - Basic planet information display
 
 ## Requirements
@@ -39,14 +39,32 @@ pip install -r requirements.txt
 
 To start the simulation, run:
 ```bash
-python src/main.py
+python -m src.main
 ```
 
 ## Controls
 
-- The view automatically rotates to show the solar system from different angles
-- Use the "Reset View" button to reset the camera position
-- The simulation runs in real-time with planets orbiting the sun at different speeds
+### Camera Controls (Mouse & Keyboard)
+
+- **Mouse Drag (stânga apăsat):** rotește camera (X/Y) în modul Free Camera
+- **Scroll Mouse:** zoom in/out (în Free Camera/Top View: distanță, în Follow Planet: offset față de planetă)
+- **Tastele W/S/A/D sau Săgeți:** rotește camera (sus/jos/stânga/dreapta)
+- **Q/E:** rotește camera pe axa Z
+- **+/- sau PageUp/PageDown:** zoom in/out (sau modifică distanța de follow)
+- **Toate aceste controale sunt sincronizate cu slider-ele din UI**
+
+### View Mode
+
+- **Free Camera:** control total cu mouse/tastatură/slider-e
+- **Follow Planet:** camera urmărește planeta selectată, distanța se ajustează cu slider sau scroll/+/–
+- **Top View:** vedere de sus, zoom cu slider sau scroll/+/–
+
+### Alte controale
+
+- Play/Pause pentru simulare
+- Viteză simulare
+- Control iluminare
+- Selectare și informații corp ceresc
 
 ## Project Structure
 
