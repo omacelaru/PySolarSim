@@ -60,8 +60,10 @@ class SolarSystem:
         self.bodies.extend([mercury, venus, earth, mars])
         
     def update(self, delta_time):
+        # Slow down simulation for more realistic planet movement
+        slow_factor = 0.1  # Lower = slower
         for body in self.bodies:
-            body.update(delta_time)
+            body.update(delta_time * slow_factor)
             
     def get_bodies(self):
         return self.bodies 
