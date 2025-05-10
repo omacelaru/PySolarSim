@@ -168,6 +168,15 @@ class GLWidget(QOpenGLWidget):
             gluLookAt(d, d, d, 0, 0, 0, 0, 0, 1)
         elif self.view_mode == 'Follow Planet' and self.selected_body is not None:
             pos = self.selected_body.get_position()
+            # Special case: if Moon, add Earth's position
+            if self.selected_body.name.lower() == 'moon':
+                earth = None
+                for body in self.solar_system.get_bodies():
+                    if body.name.lower() == 'earth':
+                        earth = body
+                        break
+                if earth is not None:
+                    pos = earth.get_position() + pos
             if self.selected_body.name.lower() == 'sun':
                 cam_pos = pos + np.array([0.0, 0.0, self.follow_distance])
                 up = np.array([0, 1, 0])
