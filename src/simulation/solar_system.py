@@ -110,12 +110,31 @@ class SolarSystem:
         self.bodies.extend([
             mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto
         ])
+        # Add the Moon as a satellite of Earth
+        self.satellites = {"Earth": []}
+        moon = CelestialBody(
+            name="Moon",
+            radius=0.18,
+            distance=0.9,  # Scaled distance from Earth
+            color=(0.8, 0.8, 0.85),
+            orbital_period=0.0748,  # Earth years (~27.3 days)
+            orbital_inclination=0.089,  # radians (~5.1 deg)
+            rotation_period=27.3  # Synchronous rotation
+        )
+        self.satellites["Earth"].append(moon)
         
     def update(self, delta_time):
         # Slow down simulation for more realistic planet movement
         slow_factor = 0.1  # Lower = slower
         for body in self.bodies:
             body.update(delta_time * slow_factor)
+        # Update satellites
+        for planet, moons in getattr(self, 'satellites', {}).items():
+            for moon in moons:
+                moon.update(delta_time * slow_factor)
             
     def get_bodies(self):
-        return self.bodies 
+        return self.bodies
+
+    def get_satellites(self, planet_name):
+        return self.satellites.get(planet_name, []) 
