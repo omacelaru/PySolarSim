@@ -557,6 +557,10 @@ class MainWindow(QMainWindow):
         # Initial UI state
         self.update_view_mode_ui('Free Camera')
         
+        self.last_eye = np.array([0.0, 0.0, self.gl_widget.camera_distance])
+        self.last_target = np.array([0.0, 0.0, 0.0])
+        self.last_up = np.array([0.0, 1.0, 0.0])
+        
     def toggle_simulation(self, checked):
         self.gl_widget.toggle_simulation(checked)
         self.play_button.setText("Play" if not checked else "Pause")
@@ -615,16 +619,85 @@ class MainWindow(QMainWindow):
         self.gl_widget.update()
 
     def change_view_mode(self, mode):
+        # Save current camera position before switching
+        self.save_current_camera()
         self.gl_widget.set_view_mode(mode)
         self.update_view_mode_ui(mode)
+        # If switching to Free Camera, set camera params from last_eye
+        if mode == 'Free Camera':
+            self.set_free_camera_from_last_eye()
+
+    def save_current_camera(self):
+        mode = self.view_combo.currentText()
+        d = self.gl_widget.camera_distance
+        if mode == 'Top View':
+            self.last_eye = np.array([0.0, 0.0, d])
+            self.last_target = np.array([0.0, 0.0, 0.0])
+            self.last_up = np.array([0.0, 1.0, 0.0])
+        elif mode == 'Lateral View':
+            self.last_eye = np.array([d, 0.0, 0.0])
+            self.last_target = np.array([0.0, 0.0, 0.0])
+            self.last_up = np.array([0.0, 0.0, 1.0])
+        elif mode == 'Oblic View':
+            dd = d / np.sqrt(3)
+            self.last_eye = np.array([dd, dd, dd])
+            self.last_target = np.array([0.0, 0.0, 0.0])
+            self.last_up = np.array([0.0, 0.0, 1.0])
+        elif mode == 'Follow Planet' and self.gl_widget.selected_body is not None:
+            pos = self.gl_widget.selected_body.get_position()
+            if self.gl_widget.selected_body.name.lower() == 'sun':
+                self.last_eye = pos + np.array([0.0, 0.0, self.gl_widget.follow_distance])
+                self.last_target = pos
+                self.last_up = np.array([0.0, 1.0, 0.0])
+            else:
+                offset = np.array([1.0, 1.0, 1.0])
+                offset = offset / np.linalg.norm(offset) * self.gl_widget.follow_distance
+                self.last_eye = pos + offset
+                self.last_target = pos
+                self.last_up = np.array([0.0, 0.0, 1.0])
+        else:
+            # Free Camera or unknown: use current params
+            x, y, z = self.gl_widget.camera_rotation_x, self.gl_widget.camera_rotation_y, self.gl_widget.camera_rotation_z
+            r = self.gl_widget.camera_distance
+            # Spherical to cartesian
+            phi = np.radians(y)
+            theta = np.radians(90 - x)
+            sx = r * np.sin(theta) * np.cos(phi)
+            sy = r * np.sin(theta) * np.sin(phi)
+            sz = r * np.cos(theta)
+            self.last_eye = np.array([sx, sy, sz])
+            self.last_target = np.array([0.0, 0.0, 0.0])
+            self.last_up = np.array([0.0, 0.0, 1.0])
+
+    def set_free_camera_from_last_eye(self):
+        # Convert last_eye to spherical coordinates
+        v = self.last_eye - self.last_target
+        r = np.linalg.norm(v)
+        if r < 1e-6:
+            return
+        x, y, z = v[0], v[1], v[2]
+        theta = np.arccos(z / r)  # [0, pi]
+        phi = np.arctan2(y, x)    # [-pi, pi]
+        camera_rotation_x = 90 - np.degrees(theta)
+        camera_rotation_y = np.degrees(phi)
+        self.gl_widget.camera_distance = r
+        self.gl_widget.camera_rotation_x = camera_rotation_x
+        self.gl_widget.camera_rotation_y = camera_rotation_y
+        # Sync sliders
+        self.dist_slider.setValue(int(r))
+        self.rot_x_slider.setValue(int(camera_rotation_x))
+        self.rot_y_slider.setValue(int(camera_rotation_y))
+        self.rot_z_slider.setValue(int(self.gl_widget.camera_rotation_z))
+        self.gl_widget.update()
 
     def update_view_mode_ui(self, mode):
-        # Show/hide controls based on view mode
         is_free = (mode == 'Free Camera')
         is_follow = (mode == 'Follow Planet')
         is_top = (mode == 'Top View')
+        is_lateral = (mode == 'Lateral View')
+        is_oblic = (mode == 'Oblic View')
         # Camera controls
-        self.dist_slider.setEnabled(is_free or is_top)
+        self.dist_slider.setEnabled(is_free or is_top or is_lateral or is_oblic)
         self.rot_x_slider.setEnabled(is_free)
         self.rot_y_slider.setEnabled(is_free)
         self.rot_z_slider.setEnabled(is_free)
@@ -635,6 +708,12 @@ class MainWindow(QMainWindow):
             widget = self.follow_dist_layout.itemAt(i).widget()
             if widget:
                 widget.setVisible(is_follow)
+        # When switching to Free Camera, sync sliders to current camera values
+        if is_free:
+            self.dist_slider.setValue(int(self.gl_widget.camera_distance))
+            self.rot_x_slider.setValue(int(self.gl_widget.camera_rotation_x))
+            self.rot_y_slider.setValue(int(self.gl_widget.camera_rotation_y))
+            self.rot_z_slider.setValue(int(self.gl_widget.camera_rotation_z))
 
     def change_follow_distance(self, value):
         self.gl_widget.set_follow_distance(value)
