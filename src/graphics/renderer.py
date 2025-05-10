@@ -14,6 +14,11 @@ class Renderer:
         self.ambient_light = (0.2, 0.2, 0.2, 1.0)
         self.diffuse_light = (1.0, 1.0, 1.0, 1.0)
         
+        # Add view mode and selection attributes
+        self.view_mode = 0  # 0: Free Camera, 1: Follow Planet, 2: Top View
+        self.follow_planet = 0  # Index of planet to follow
+        self.selected_body = None  # Currently selected celestial body
+        
     def initialize(self):
         """Initialize OpenGL settings"""
         glClearColor(0.0, 0.0, 0.0, 1.0)
