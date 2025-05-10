@@ -172,6 +172,19 @@ class GLWidget(QOpenGLWidget):
                 glEnable(GL_LIGHTING)
             
             self.draw_sphere(body.radius)
+            # Draw satellites (e.g., Moon for Earth)
+            for moon in self.solar_system.get_satellites(body.name):
+                glPushMatrix()
+                moon_pos = moon.get_position()
+                glTranslatef(moon_pos[0], moon_pos[1], moon_pos[2])
+                moon_color = moon.get_color()
+                glColor3f(moon_color[0], moon_color[1], moon_color[2])
+                self.draw_sphere(moon.radius)
+                if moon == self.selected_body:
+                    glDisable(GL_LIGHTING)
+                    self.draw_selection_ring(moon.radius, moon_color)
+                    glEnable(GL_LIGHTING)
+                glPopMatrix()
             glPopMatrix()
             
     def animate(self):
@@ -180,10 +193,41 @@ class GLWidget(QOpenGLWidget):
             self.update()
             
     def select_body(self, body_name):
+        # Search in planets
+        found = False
         for body in self.solar_system.get_bodies():
             if body.name == body_name:
                 self.selected_body = body
+                color = body.get_color()
+                info = f"Name: {body.name}\n"
+                info += f"Radius: {body.radius:.2f}\n"
+                info += f"Distance: {body.distance:.2f}\n"
+                info += f"Orbital Period: {body.orbital_period:.2f} years\n"
+                info += f"Rotation Period: {body.rotation_period:.2f} days\n"
+                info += f"Orbital Inclination: {math.degrees(body.orbital_inclination):.2f}°"
+                self.selected_body = body
+                self.info_label.setText(info)
+                found = True
                 break
+        # Search in satellites if not found
+        if not found:
+            for planet in self.solar_system.get_bodies():
+                for sat in self.solar_system.get_satellites(planet.name):
+                    if sat.name == body_name:
+                        self.selected_body = sat
+                        color = sat.get_color()
+                        info = f"Name: {sat.name}\n"
+                        info += f"Radius: {sat.radius:.2f}\n"
+                        info += f"Distance: {sat.distance:.2f} (from planet)\n"
+                        info += f"Orbital Period: {sat.orbital_period:.2f} years\n"
+                        info += f"Rotation Period: {sat.rotation_period:.2f} days\n"
+                        info += f"Orbital Inclination: {math.degrees(sat.orbital_inclination):.2f}°"
+                        self.selected_body = sat
+                        self.info_label.setText(info)
+                        found = True
+                        break
+                if found:
+                    break
         self.update()
         
     def set_simulation_speed(self, speed):
@@ -386,8 +430,19 @@ class MainWindow(QMainWindow):
         # Body Selection
         body_group = QGroupBox("Celestial Body Info")
         body_layout = QVBoxLayout()
+        # Add all main bodies and satellites to the dropdown (Moon after Earth)
+        all_bodies = [body.name for body in self.gl_widget.solar_system.get_bodies()]
+        moon_inserted = False
+        result_bodies = []
+        for name in all_bodies:
+            result_bodies.append(name)
+            if name == 'Earth':
+                # Insert Moon right after Earth
+                for sat in self.gl_widget.solar_system.get_satellites('Earth'):
+                    if sat.name not in result_bodies:
+                        result_bodies.append(sat.name)
         self.body_combo = QComboBox()
-        self.body_combo.addItems([body.name for body in self.gl_widget.solar_system.get_bodies()])
+        self.body_combo.addItems(result_bodies)
         self.body_combo.currentTextChanged.connect(self.select_body)
         body_layout.addWidget(self.body_combo)
         self.info_label = QLabel("Select a body to view its information")
@@ -464,10 +519,12 @@ class MainWindow(QMainWindow):
         self.gl_widget.set_lighting(ambient, diffuse)
         
     def select_body(self, body_name):
-        self.gl_widget.select_body(body_name)
-        # Update info label with body details
+        # Search in planets
+        found = False
         for body in self.gl_widget.solar_system.get_bodies():
             if body.name == body_name:
+                self.gl_widget.selected_body = body
+                color = body.get_color()
                 info = f"Name: {body.name}\n"
                 info += f"Radius: {body.radius:.2f}\n"
                 info += f"Distance: {body.distance:.2f}\n"
@@ -475,7 +532,27 @@ class MainWindow(QMainWindow):
                 info += f"Rotation Period: {body.rotation_period:.2f} days\n"
                 info += f"Orbital Inclination: {math.degrees(body.orbital_inclination):.2f}°"
                 self.info_label.setText(info)
-                break 
+                found = True
+                break
+        # Search in satellites if not found
+        if not found:
+            for planet in self.gl_widget.solar_system.get_bodies():
+                for sat in self.gl_widget.solar_system.get_satellites(planet.name):
+                    if sat.name == body_name:
+                        self.gl_widget.selected_body = sat
+                        color = sat.get_color()
+                        info = f"Name: {sat.name}\n"
+                        info += f"Radius: {sat.radius:.2f}\n"
+                        info += f"Distance: {sat.distance:.2f} (from planet)\n"
+                        info += f"Orbital Period: {sat.orbital_period:.2f} years\n"
+                        info += f"Rotation Period: {sat.rotation_period:.2f} days\n"
+                        info += f"Orbital Inclination: {math.degrees(sat.orbital_inclination):.2f}°"
+                        self.info_label.setText(info)
+                        found = True
+                        break
+                if found:
+                    break
+        self.gl_widget.update()
 
     def change_view_mode(self, mode):
         self.gl_widget.set_view_mode(mode)
