@@ -44,6 +44,22 @@ Pornește aplicația cu:
 python -m src.main
 ```
 
+## Rulare cu Docker
+
+Poți rula aplicația și în container Docker (necesită X11 pentru interfață grafică):
+
+1. Construiește imaginea:
+```bash
+docker build -t pysolarsim .
+```
+2. Rulează aplicația (pe Linux, cu X11 forwarding):
+```bash
+docker run -it --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix pysolarsim
+```
+3. Pe Windows, folosește un X server (VcXsrv/Xming) și setează variabila DISPLAY corespunzător.
+
+> Notă: Aplicațiile GUI în Docker necesită X11 forwarding sau un X server local.
+
 ## Controale și interacțiune
 
 ### Moduri de cameră
@@ -86,5 +102,6 @@ PySolarSim/
 │       └── main_window.py
 ├── requirements.txt
 ├── style.qss                # Tema modernă a interfeței
+├── Dockerfile               # Containerizare rapidă
 └── README.md
 ``` 
