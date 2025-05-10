@@ -1,41 +1,20 @@
 # PySolarSim - Solar System Simulation
 
-A sophisticated solar system simulation that combines physics, graphics, and artificial intelligence to create an interactive and educational experience.
+A basic 3D solar system simulation built with Python, PyOpenGL, and PyQt6.
 
 ## Features
 
-- **Physics Simulation**
-  - Realistic orbital mechanics using Newtonian physics
-  - Gravitational interactions between celestial bodies
-  - Collision detection and response
-  - Custom physics for solar flares and space weather
-
-- **Advanced Graphics**
-  - OpenGL-based 3D rendering
-  - Custom shaders for realistic planet surfaces
-  - Dynamic lighting and shadows
-  - Particle systems for stars and nebulae
-  - Post-processing effects
-
-- **Artificial Intelligence**
-  - AI-driven celestial body generation
-  - Adaptive difficulty system
-  - Smart camera control
-  - Predictive orbital calculations
-
-- **Interactive Features**
-  - Real-time planet manipulation
-  - Time control (pause, speed up, slow down)
-  - Multiple camera views
-  - Information overlay for celestial bodies
+- 3D visualization of a basic solar system
+- Real-time orbital motion simulation
+- Interactive camera controls
+- Basic planet information display
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.x
 - PyOpenGL
 - PyQt6
 - NumPy
-- SciPy
 
 ## Installation
 
@@ -45,7 +24,7 @@ git clone https://github.com/yourusername/PySolarSim.git
 cd PySolarSim
 ```
 
-2. Create and activate a virtual environment:
+2. Create a virtual environment (recommended):
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
@@ -56,44 +35,34 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-## Usage
+## Running the Application
 
-Run the main application:
+To start the simulation, run:
 ```bash
 python src/main.py
 ```
 
 ## Controls
 
-- Left Mouse Button: Rotate view
-- Right Mouse Button: Pan view
-- Mouse Wheel: Zoom
-- Space: Pause/Resume simulation
-- +/-: Adjust simulation speed
-- ESC: Exit
+- The view automatically rotates to show the solar system from different angles
+- Use the "Reset View" button to reset the camera position
+- The simulation runs in real-time with planets orbiting the sun at different speeds
 
 ## Project Structure
 
 ```
 PySolarSim/
 ├── src/
-│   ├── main.py
-│   ├── physics/
-│   ├── graphics/
-│   ├── ai/
-│   └── gui/
-├── assets/
-│   ├── textures/
-│   ├── shaders/
-│   └── models/
-├── tests/
-└── requirements.txt
+│   ├── main.py              # Application entry point
+│   ├── simulation/          # Simulation logic
+│   │   ├── celestial_bodies.py
+│   │   └── solar_system.py
+│   └── ui/                  # User interface
+│       └── main_window.py
+├── requirements.txt
+└── README.md
 ```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
+Feel free to submit issues and enhancement requests! 
