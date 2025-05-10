@@ -1,121 +1,137 @@
+from PyQt6.QtWidgets import QWidget
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QSurfaceFormat
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from OpenGL.GLUT import *
 import numpy as np
-from typing import List, Tuple
-import math
+from simulation.solar_system import SolarSystem
 
-class Renderer:
-    def __init__(self):
-        self.camera_distance = 5.0
-        self.camera_rotation_x = 30.0
-        self.camera_rotation_y = 0.0
-        self.light_position = (0.0, 0.0, 10.0, 1.0)
-        self.ambient_light = (0.2, 0.2, 0.2, 1.0)
-        self.diffuse_light = (1.0, 1.0, 1.0, 1.0)
+class OpenGLWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         
-        # Add view mode and selection attributes
-        self.view_mode = 0  # 0: Free Camera, 1: Follow Planet, 2: Top View
-        self.follow_planet = 0  # Index of planet to follow
-        self.selected_body = None  # Currently selected celestial body
+        # Set up OpenGL format
+        format = QSurfaceFormat()
+        format.setVersion(3, 3)
+        format.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+        QSurfaceFormat.setDefaultFormat(format)
         
-    def initialize(self):
-        """Initialize OpenGL settings"""
+        # Camera settings
+        self.camera_distance = 200.0
+        self.camera_rotation = [0.0, 0.0, 0.0]
+        
+        # Create solar system
+        self.solar_system = SolarSystem()
+        self.solar_system.create_solar_system()
+        
+        # Scale factor for visualization
+        self.scale_factor = 1e-9  # Scale down to reasonable size
+        
+        # Animation timer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_simulation)
+        self.timer.start(16)  # ~60 FPS
+        
+        # Initialize OpenGL context
+        self.context = None
+        self.initializeGL()
+    
+    def initializeGL(self):
+        if self.context is None:
+            self.context = QSurfaceFormat()
+            self.context.setVersion(3, 3)
+            self.context.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+            QSurfaceFormat.setDefaultFormat(self.context)
+        
         glClearColor(0.0, 0.0, 0.0, 1.0)
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_LIGHTING)
         glEnable(GL_LIGHT0)
         glEnable(GL_COLOR_MATERIAL)
-        glEnable(GL_BLEND)
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         
         # Set up light
-        glLightfv(GL_LIGHT0, GL_POSITION, self.light_position)
-        glLightfv(GL_LIGHT0, GL_AMBIENT, self.ambient_light)
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, self.diffuse_light)
-        
-    def resize(self, width: int, height: int):
-        """Handle window resize"""
+        glLightfv(GL_LIGHT0, GL_POSITION, (0, 0, 0, 1))
+        glLightfv(GL_LIGHT0, GL_AMBIENT, (0.2, 0.2, 0.2, 1))
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, (1, 1, 1, 1))
+    
+    def resizeGL(self, width, height):
         glViewport(0, 0, width, height)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(45, width / height, 0.1, 100.0)
+        gluPerspective(45, width / height, 0.1, 1000.0)
         glMatrixMode(GL_MODELVIEW)
-        
-    def setup_camera(self):
-        """Set up the camera position and orientation"""
+    
+    def update_simulation(self):
+        self.solar_system.update(1/60)  # Update with 60 FPS
+        self.update()
+    
+    def paintEvent(self, event):
+        self.paintGL()
+    
+    def paintGL(self):
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
         
-        # Calculate camera position
-        x = self.camera_distance * math.cos(math.radians(self.camera_rotation_y)) * math.cos(math.radians(self.camera_rotation_x))
-        y = self.camera_distance * math.sin(math.radians(self.camera_rotation_x))
-        z = self.camera_distance * math.sin(math.radians(self.camera_rotation_y)) * math.cos(math.radians(self.camera_rotation_x))
+        # Set up camera
+        glTranslatef(0, 0, -self.camera_distance)
+        glRotatef(self.camera_rotation[0], 1, 0, 0)
+        glRotatef(self.camera_rotation[1], 0, 1, 0)
+        glRotatef(self.camera_rotation[2], 0, 0, 1)
         
-        gluLookAt(x, y, z, 0, 0, 0, 0, 1, 0)
-        
-    def draw_celestial_body(self, body, scale_factor: float = 1e-4):
-        """Draw a celestial body with proper lighting and materials"""
+        # Draw all celestial bodies
+        for body in self.solar_system.bodies:
+            # Scale position for visualization
+            pos = body.position * self.scale_factor
+            radius = body.radius * self.scale_factor * 100  # Scale radius for better visibility
+            
+            # Draw the body
+            self.draw_sphere(pos[0], pos[1], pos[2], radius, body.color)
+            
+            # Draw orbit trail
+            if len(body.orbit_points) > 1:
+                self.draw_orbit(body.get_orbit_points() * self.scale_factor)
+    
+    def draw_sphere(self, x, y, z, radius, color):
         glPushMatrix()
+        glTranslatef(x, y, z)
+        glColor3f(*color)
         
-        # Set position
-        glTranslatef(body.position[0] * scale_factor,
-                    body.position[1] * scale_factor,
-                    body.position[2] * scale_factor)
-        
-        # Set material properties
-        glColor3f(*body.color)
-        glMaterialfv(GL_FRONT, GL_AMBIENT, (*body.color, 0.2))
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, (*body.color, 1.0))
-        glMaterialfv(GL_FRONT, GL_SPECULAR, (1.0, 1.0, 1.0, 1.0))
-        glMaterialf(GL_FRONT, GL_SHININESS, 50.0)
-        
-        # Draw sphere
-        sphere = gluNewQuadric()
-        gluQuadricTexture(sphere, GL_TRUE)
-        radius = body.radius * scale_factor
-        gluSphere(sphere, radius, 32, 32)
+        quad = gluNewQuadric()
+        gluSphere(quad, radius, 32, 32)
+        gluDeleteQuadric(quad)
         
         glPopMatrix()
-        
-    def draw_orbit(self, body, scale_factor: float = 1e-4):
-        """Draw the orbital path of a celestial body"""
-        if body.parent is None:
-            return
-            
-        glPushMatrix()
+    
+    def draw_orbit(self, points):
+        glDisable(GL_LIGHTING)
+        glBegin(GL_LINE_STRIP)
         glColor3f(0.5, 0.5, 0.5)
-        glBegin(GL_LINE_LOOP)
-        
-        # Calculate orbital radius
-        radius = np.linalg.norm(body.position - body.parent.position) * scale_factor
-        
-        # Draw circle
-        for i in range(360):
-            angle = math.radians(i)
-            x = radius * math.cos(angle)
-            z = radius * math.sin(angle)
-            glVertex3f(x, 0, z)
-            
+        for point in points:
+            glVertex3f(point[0], point[1], point[2])
         glEnd()
-        glPopMatrix()
+        glEnable(GL_LIGHTING)
+    
+    def mousePressEvent(self, event):
+        self.last_pos = event.pos()
+    
+    def mouseMoveEvent(self, event):
+        dx = event.pos().x() - self.last_pos.x()
+        dy = event.pos().y() - self.last_pos.y()
         
-    def render(self, bodies: List):
-        """Render the entire scene"""
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            self.camera_rotation[1] += dx
+            self.camera_rotation[0] += dy
         
-        self.setup_camera()
-        
-        # Draw all bodies and their orbits
-        for body in bodies:
-            self.draw_orbit(body)
-            self.draw_celestial_body(body)
-            
-    def update_camera(self, dx: float, dy: float):
-        """Update camera rotation"""
-        self.camera_rotation_y += dx
-        self.camera_rotation_x += dy
-        self.camera_rotation_x = max(-89, min(89, self.camera_rotation_x))
-        
-    def update_zoom(self, delta: float):
-        """Update camera zoom"""
-        self.camera_distance = max(2.0, min(20.0, self.camera_distance - delta)) 
+        self.last_pos = event.pos()
+    
+    def wheelEvent(self, event):
+        delta = event.angleDelta().y()
+        self.camera_distance -= delta * 0.1
+        self.camera_distance = max(10, min(200, self.camera_distance))
+    
+    def toggle_simulation(self):
+        self.solar_system.toggle_pause()
+    
+    def reset_simulation(self):
+        self.solar_system.reset() 

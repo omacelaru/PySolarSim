@@ -1,39 +1,21 @@
 # PySolarSim - Solar System Simulation
 
-A sophisticated solar system simulation that combines physics, graphics, and artificial intelligence to create an interactive and educational experience.
+A 3D solar system simulation that allows users to explore and interact with planets, stars, and other celestial bodies in a realistic environment.
 
 ## Features
 
-- **Physics Simulation**
-  - Realistic orbital mechanics using Newtonian physics
-  - Gravitational interactions between celestial bodies
-  - Collision detection and response
-  - Custom physics for solar flares and space weather
-
-- **Advanced Graphics**
-  - OpenGL-based 3D rendering
-  - Custom shaders for realistic planet surfaces
-  - Dynamic lighting and shadows
-  - Particle systems for stars and nebulae
-  - Post-processing effects
-
-- **Artificial Intelligence**
-  - AI-driven celestial body generation
-  - Adaptive difficulty system
-  - Smart camera control
-  - Predictive orbital calculations
-
-- **Interactive Features**
-  - Real-time planet manipulation
-  - Time control (pause, speed up, slow down)
-  - Multiple camera views
-  - Information overlay for celestial bodies
+- Realistic 3D visualization of the solar system
+- Physics-based simulation of celestial bodies
+- Interactive camera controls
+- Time scale adjustment
+- Pause/Resume and Reset functionality
+- Orbit trails visualization
 
 ## Requirements
 
-- Python 3.8+
-- PyOpenGL
+- Python 3.8 or higher
 - PyQt6
+- PyOpenGL
 - NumPy
 - SciPy
 
@@ -45,54 +27,62 @@ git clone https://github.com/yourusername/PySolarSim.git
 cd PySolarSim
 ```
 
-2. Create and activate a virtual environment:
+2. Create and activate a virtual environment (recommended):
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. Install dependencies:
+3. Install the required packages:
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Usage
 
-Run the main application:
+Run the simulation:
 ```bash
 python src/main.py
 ```
 
-## Controls
+### Controls
 
-- Left Mouse Button: Rotate view
-- Right Mouse Button: Pan view
-- Mouse Wheel: Zoom
-- Space: Pause/Resume simulation
-- +/-: Adjust simulation speed
-- ESC: Exit
+- **Left Mouse Button + Drag**: Rotate camera
+- **Mouse Wheel**: Zoom in/out
+- **Pause/Resume Button**: Pause or resume the simulation
+- **Reset Button**: Reset the simulation to initial state
+- **Time Scale Slider**: Adjust the simulation speed
 
 ## Project Structure
 
 ```
 PySolarSim/
 ├── src/
-│   ├── main.py
-│   ├── physics/
-│   ├── graphics/
-│   ├── ai/
-│   └── gui/
-├── assets/
-│   ├── textures/
-│   ├── shaders/
-│   └── models/
-├── tests/
-└── requirements.txt
+│   ├── main.py                 # Application entry point
+│   ├── simulation/             # Simulation logic
+│   │   ├── physics.py         # Physics calculations
+│   │   ├── celestial_bodies.py # Celestial body classes
+│   │   └── solar_system.py    # Solar system management
+│   ├── graphics/              # Graphics and rendering
+│   │   ├── renderer.py        # OpenGL rendering
+│   │   └── effects.py         # Visual effects
+│   └── ui/                    # User interface
+│       └── main_window.py     # Main window and controls
+├── assets/                    # Resources
+│   ├── textures/             # Texture files
+│   └── models/               # 3D models
+├── tests/                    # Test files
+├── requirements.txt          # Python dependencies
+└── README.md                # This file
 ```
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 

@@ -1,3 +1,0 @@
-"""
-Solar System Simulation package.
-""" 
