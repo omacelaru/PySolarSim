@@ -57,7 +57,59 @@ class SolarSystem:
             rotation_period=1.03  # Earth days
         )
         
-        self.bodies.extend([mercury, venus, earth, mars])
+        jupiter = CelestialBody(
+            name="Jupiter",
+            radius=1.2,
+            distance=8.0,
+            color=(0.9, 0.8, 0.6),
+            orbital_period=11.86,
+            orbital_inclination=0.022,  # radians
+            rotation_period=0.41  # Earth days
+        )
+        
+        saturn = CelestialBody(
+            name="Saturn",
+            radius=1.0,
+            distance=10.0,
+            color=(0.9, 0.8, 0.5),
+            orbital_period=29.46,
+            orbital_inclination=0.043,  # radians
+            rotation_period=0.45  # Earth days
+        )
+        
+        uranus = CelestialBody(
+            name="Uranus",
+            radius=0.8,
+            distance=12.0,
+            color=(0.6, 0.8, 0.9),
+            orbital_period=84.01,
+            orbital_inclination=0.013,  # radians
+            rotation_period=0.72  # Earth days
+        )
+        
+        neptune = CelestialBody(
+            name="Neptune",
+            radius=0.8,
+            distance=14.0,
+            color=(0.3, 0.5, 0.9),
+            orbital_period=164.8,
+            orbital_inclination=0.030,  # radians
+            rotation_period=0.67  # Earth days
+        )
+        
+        pluto = CelestialBody(
+            name="Pluto",
+            radius=0.2,
+            distance=16.0,
+            color=(0.8, 0.8, 0.7),
+            orbital_period=248.0,
+            orbital_inclination=0.157,  # radians
+            rotation_period=6.39  # Earth days
+        )
+        
+        self.bodies.extend([
+            mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto
+        ])
         
     def update(self, delta_time):
         # Slow down simulation for more realistic planet movement
