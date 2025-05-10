@@ -21,7 +21,7 @@ class GLWidget(QOpenGLWidget):
         self.selected_body = None
         
         # Camera parameters
-        self.camera_distance = 20.0
+        self.camera_distance = 43.0  # Large enough to see all planets
         self.camera_rotation_x = 30.0
         self.camera_rotation_y = 0.0
         self.camera_rotation_z = 0.0
@@ -31,7 +31,7 @@ class GLWidget(QOpenGLWidget):
         self.diffuse_light = 1.0
         
         # View mode
-        self.view_mode = 'Free Camera'
+        self.view_mode = 'Oblic View'
         self.follow_distance = 8.0
         
         # Setup animation timer
@@ -315,8 +315,8 @@ class GLWidget(QOpenGLWidget):
         if self.last_mouse_pos is not None and self.parent().parent().view_combo.currentText() == 'Free Camera':
             delta = event.position() - self.last_mouse_pos
             self.last_mouse_pos = event.position()
-            self.camera_rotation_x += delta.y() * 0.3
-            self.camera_rotation_y += delta.x() * 0.3
+            self.camera_rotation_x += delta.y() * 0.12
+            self.camera_rotation_y += delta.x() * 0.12
             # Clamp X rotation
             self.camera_rotation_x = max(-90, min(90, self.camera_rotation_x))
             # Sync sliders if present
@@ -551,6 +551,8 @@ class MainWindow(QMainWindow):
         control_layout.addWidget(camera_group)
         control_layout.addStretch()
         layout.addWidget(control_panel, stretch=1)
+        # Set default view mode after all controls are created
+        self.view_combo.setCurrentText("Oblic View")
         
         # Initial UI state
         self.update_view_mode_ui('Free Camera')
