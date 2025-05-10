@@ -56,6 +56,10 @@ class GLWidget(QOpenGLWidget):
         glEnable(GL_NORMALIZE)
         self.update_lighting()
         
+        # Select Sun by default
+        if self.selected_body is None:
+            self.selected_body = self.solar_system.get_bodies()[0]
+        
     def update_lighting(self):
         # Place light at the sun's position
         sun = self.solar_system.get_bodies()[0]
@@ -94,6 +98,18 @@ class GLWidget(QOpenGLWidget):
                 glVertex3f(x * zr1 * radius, y * zr1 * radius, z1 * radius)
             glEnd()
         
+    def draw_selection_ring(self, radius, color):
+        glColor3f(*color)  # Use planet's own color
+        glLineWidth(2.0)
+        glBegin(GL_LINE_LOOP)
+        for i in range(64):
+            angle = 2 * math.pi * i / 64
+            x = math.cos(angle) * (radius * 1.15)
+            y = math.sin(angle) * (radius * 1.15)
+            glVertex3f(x, y, 0)
+        glEnd()
+        glLineWidth(1.0)
+
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
@@ -105,16 +121,18 @@ class GLWidget(QOpenGLWidget):
             glRotatef(self.camera_rotation_y, 0.0, 1.0, 0.0)
             glRotatef(self.camera_rotation_z, 0.0, 0.0, 1.0)
         elif self.view_mode == 'Top View':
-            glTranslatef(0.0, 0.0, -self.camera_distance)
-            glRotatef(90, 1.0, 0.0, 0.0)
+            gluLookAt(0, 0, self.camera_distance, 0, 0, 0, 0, 1, 0)
+        elif self.view_mode == 'Lateral View':
+            gluLookAt(self.camera_distance, 0, 0, 0, 0, 0, 0, 0, 1)
+        elif self.view_mode == 'Oblic View':
+            d = self.camera_distance / math.sqrt(3)
+            gluLookAt(d, d, d, 0, 0, 0, 0, 0, 1)
         elif self.view_mode == 'Follow Planet' and self.selected_body is not None:
             pos = self.selected_body.get_position()
             if self.selected_body.name.lower() == 'sun':
-                # For Sun, offset on Z axis
                 cam_pos = pos + np.array([0.0, 0.0, self.follow_distance])
                 up = np.array([0, 1, 0])
             else:
-                # For planets, offset diagonally (X+Y+Z)
                 offset = np.array([1.0, 1.0, 1.0])
                 offset = offset / np.linalg.norm(offset) * self.follow_distance
                 cam_pos = pos + offset
@@ -147,10 +165,12 @@ class GLWidget(QOpenGLWidget):
             color = body.get_color()
             glColor3f(color[0], color[1], color[2])
             
-            # Highlight selected body
+            # Draw selection ring if selected
             if body == self.selected_body:
-                glColor3f(1.0, 1.0, 1.0)  # White highlight
-                
+                glDisable(GL_LIGHTING)
+                self.draw_selection_ring(body.radius, color)
+                glEnable(GL_LIGHTING)
+            
             self.draw_sphere(body.radius)
             glPopMatrix()
             
@@ -322,7 +342,7 @@ class MainWindow(QMainWindow):
         view_layout = QVBoxLayout()
         view_layout.addWidget(QLabel("View Mode:"))
         self.view_combo = QComboBox()
-        self.view_combo.addItems(["Free Camera", "Follow Planet", "Top View"])
+        self.view_combo.addItems(["Free Camera", "Follow Planet", "Top View", "Lateral View", "Oblic View"])
         self.view_combo.currentTextChanged.connect(self.change_view_mode)
         view_layout.addWidget(self.view_combo)
         
@@ -340,60 +360,9 @@ class MainWindow(QMainWindow):
         view_group.setLayout(view_layout)
         control_layout.addWidget(view_group)
         
-        # Camera Controls
-        camera_group = QGroupBox("Camera Controls")
-        camera_layout = QVBoxLayout()
-        
-        # Distance control
-        dist_layout = QHBoxLayout()
-        dist_layout.addWidget(QLabel("Distance:"))
-        self.dist_slider = QSlider(Qt.Orientation.Horizontal)
-        self.dist_slider.setMinimum(10)
-        self.dist_slider.setMaximum(50)
-        self.dist_slider.setValue(20)
-        self.dist_slider.valueChanged.connect(self.change_camera_distance)
-        dist_layout.addWidget(self.dist_slider)
-        camera_layout.addLayout(dist_layout)
-        
-        # Rotation controls
-        rot_x_layout = QHBoxLayout()
-        rot_x_layout.addWidget(QLabel("Rotate X:"))
-        self.rot_x_slider = QSlider(Qt.Orientation.Horizontal)
-        self.rot_x_slider.setMinimum(-180)
-        self.rot_x_slider.setMaximum(180)
-        self.rot_x_slider.setValue(30)
-        self.rot_x_slider.valueChanged.connect(self.change_camera_rotation)
-        rot_x_layout.addWidget(self.rot_x_slider)
-        camera_layout.addLayout(rot_x_layout)
-        
-        rot_y_layout = QHBoxLayout()
-        rot_y_layout.addWidget(QLabel("Rotate Y:"))
-        self.rot_y_slider = QSlider(Qt.Orientation.Horizontal)
-        self.rot_y_slider.setMinimum(-180)
-        self.rot_y_slider.setMaximum(180)
-        self.rot_y_slider.setValue(0)
-        self.rot_y_slider.valueChanged.connect(self.change_camera_rotation)
-        rot_y_layout.addWidget(self.rot_y_slider)
-        camera_layout.addLayout(rot_y_layout)
-        
-        rot_z_layout = QHBoxLayout()
-        rot_z_layout.addWidget(QLabel("Rotate Z:"))
-        self.rot_z_slider = QSlider(Qt.Orientation.Horizontal)
-        self.rot_z_slider.setMinimum(-180)
-        self.rot_z_slider.setMaximum(180)
-        self.rot_z_slider.setValue(0)
-        self.rot_z_slider.valueChanged.connect(self.change_camera_rotation)
-        rot_z_layout.addWidget(self.rot_z_slider)
-        camera_layout.addLayout(rot_z_layout)
-        
-        camera_group.setLayout(camera_layout)
-        control_layout.addWidget(camera_group)
-        
         # Lighting Controls
         light_group = QGroupBox("Lighting Controls")
         light_layout = QVBoxLayout()
-        
-        # Ambient light control
         ambient_layout = QHBoxLayout()
         ambient_layout.addWidget(QLabel("Ambient:"))
         self.ambient_slider = QSlider(Qt.Orientation.Horizontal)
@@ -403,8 +372,6 @@ class MainWindow(QMainWindow):
         self.ambient_slider.valueChanged.connect(self.change_lighting)
         ambient_layout.addWidget(self.ambient_slider)
         light_layout.addLayout(ambient_layout)
-        
-        # Diffuse light control
         diffuse_layout = QHBoxLayout()
         diffuse_layout.addWidget(QLabel("Diffuse:"))
         self.diffuse_slider = QSlider(Qt.Orientation.Horizontal)
@@ -414,26 +381,61 @@ class MainWindow(QMainWindow):
         self.diffuse_slider.valueChanged.connect(self.change_lighting)
         diffuse_layout.addWidget(self.diffuse_slider)
         light_layout.addLayout(diffuse_layout)
-        
         light_group.setLayout(light_layout)
         control_layout.addWidget(light_group)
-        
         # Body Selection
         body_group = QGroupBox("Celestial Body Info")
         body_layout = QVBoxLayout()
-        
         self.body_combo = QComboBox()
         self.body_combo.addItems([body.name for body in self.gl_widget.solar_system.get_bodies()])
         self.body_combo.currentTextChanged.connect(self.select_body)
         body_layout.addWidget(self.body_combo)
-        
         self.info_label = QLabel("Select a body to view its information")
         self.info_label.setWordWrap(True)
         body_layout.addWidget(self.info_label)
-        
         body_group.setLayout(body_layout)
         control_layout.addWidget(body_group)
-        
+        # Camera Controls (moved to bottom)
+        camera_group = QGroupBox("Camera Controls")
+        camera_layout = QVBoxLayout()
+        dist_layout = QHBoxLayout()
+        dist_layout.addWidget(QLabel("Distance:"))
+        self.dist_slider = QSlider(Qt.Orientation.Horizontal)
+        self.dist_slider.setMinimum(10)
+        self.dist_slider.setMaximum(50)
+        self.dist_slider.setValue(20)
+        self.dist_slider.valueChanged.connect(self.change_camera_distance)
+        dist_layout.addWidget(self.dist_slider)
+        camera_layout.addLayout(dist_layout)
+        rot_x_layout = QHBoxLayout()
+        rot_x_layout.addWidget(QLabel("Rotate X:"))
+        self.rot_x_slider = QSlider(Qt.Orientation.Horizontal)
+        self.rot_x_slider.setMinimum(-180)
+        self.rot_x_slider.setMaximum(180)
+        self.rot_x_slider.setValue(30)
+        self.rot_x_slider.valueChanged.connect(self.change_camera_rotation)
+        rot_x_layout.addWidget(self.rot_x_slider)
+        camera_layout.addLayout(rot_x_layout)
+        rot_y_layout = QHBoxLayout()
+        rot_y_layout.addWidget(QLabel("Rotate Y:"))
+        self.rot_y_slider = QSlider(Qt.Orientation.Horizontal)
+        self.rot_y_slider.setMinimum(-180)
+        self.rot_y_slider.setMaximum(180)
+        self.rot_y_slider.setValue(0)
+        self.rot_y_slider.valueChanged.connect(self.change_camera_rotation)
+        rot_y_layout.addWidget(self.rot_y_slider)
+        camera_layout.addLayout(rot_y_layout)
+        rot_z_layout = QHBoxLayout()
+        rot_z_layout.addWidget(QLabel("Rotate Z:"))
+        self.rot_z_slider = QSlider(Qt.Orientation.Horizontal)
+        self.rot_z_slider.setMinimum(-180)
+        self.rot_z_slider.setMaximum(180)
+        self.rot_z_slider.setValue(0)
+        self.rot_z_slider.valueChanged.connect(self.change_camera_rotation)
+        rot_z_layout.addWidget(self.rot_z_slider)
+        camera_layout.addLayout(rot_z_layout)
+        camera_group.setLayout(camera_layout)
+        control_layout.addWidget(camera_group)
         control_layout.addStretch()
         layout.addWidget(control_panel, stretch=1)
         
