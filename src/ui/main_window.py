@@ -47,6 +47,8 @@ class GLWidget(QOpenGLWidget):
             for _ in range(300)
         ]
         
+        self.show_orbits = True
+        
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
         glEnable(GL_DEPTH_TEST)
@@ -132,6 +134,21 @@ class GLWidget(QOpenGLWidget):
         glEnable(GL_LIGHTING)
         glPopAttrib()
 
+    def draw_orbit(self, body):
+        glDisable(GL_LIGHTING)
+        glColor4f(0.7, 0.7, 0.7, 0.5)
+        glLineWidth(1.0)
+        glBegin(GL_LINE_LOOP)
+        for i in range(128):
+            angle = 2 * math.pi * i / 128
+            x = body.distance * math.cos(angle)
+            y = body.distance * math.sin(angle) * math.cos(body.orbital_inclination)
+            z = body.distance * math.sin(angle) * math.sin(body.orbital_inclination)
+            z += getattr(body, 'z_offset', 0.0)
+            glVertex3f(x, y, z)
+        glEnd()
+        glEnable(GL_LIGHTING)
+
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
@@ -173,6 +190,12 @@ class GLWidget(QOpenGLWidget):
         glEnd()
         glEnable(GL_LIGHTING)
         self.update_lighting()
+        
+        # Draw all orbital trajectories if enabled (read directly from MainWindow)
+        mainwindow = self.parent().parent()
+        if hasattr(mainwindow, 'orbit_checkbox') and mainwindow.orbit_checkbox.isChecked():
+            for body in self.solar_system.get_bodies():
+                self.draw_orbit(body)
         
         # Draw all celestial bodies
         for body in self.solar_system.get_bodies():
@@ -367,6 +390,10 @@ class GLWidget(QOpenGLWidget):
                 self.parent().parent().follow_dist_slider.setValue(int(self.follow_distance))
             self.update()
 
+    def toggle_orbits(self, state):
+        self.show_orbits = (state == Qt.CheckState.Checked)
+        self.update()
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -475,6 +502,10 @@ class MainWindow(QMainWindow):
         body_layout.addWidget(self.info_label)
         body_group.setLayout(body_layout)
         control_layout.addWidget(body_group)
+        # Create Show Orbits checkbox ONCE here
+        self.orbit_checkbox = QCheckBox("Show Orbits")
+        self.orbit_checkbox.setChecked(True)
+        self.orbit_checkbox.stateChanged.connect(self.gl_widget.update)
         # Camera Controls (moved to bottom)
         camera_group = QGroupBox("Camera Controls")
         camera_layout = QVBoxLayout()
@@ -515,6 +546,8 @@ class MainWindow(QMainWindow):
         rot_z_layout.addWidget(self.rot_z_slider)
         camera_layout.addLayout(rot_z_layout)
         camera_group.setLayout(camera_layout)
+        # Add widgets in order
+        control_layout.addWidget(self.orbit_checkbox)
         control_layout.addWidget(camera_group)
         control_layout.addStretch()
         layout.addWidget(control_panel, stretch=1)

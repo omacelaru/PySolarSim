@@ -30,7 +30,8 @@ class CelestialBody:
         x = self.distance * np.cos(self.angle)
         y = self.distance * np.sin(self.angle) * np.cos(self.orbital_inclination)
         z = self.distance * np.sin(self.angle) * np.sin(self.orbital_inclination)
-        return np.array([x, y, z])
+        z_offset = getattr(self, 'z_offset', 0.0)
+        return np.array([x, y, z + z_offset])
         
     def get_color(self):
         return self.color
