@@ -1,86 +1,90 @@
 # PySolarSim - Solar System Simulation
 
-A basic 3D solar system simulation built with Python, PyOpenGL, and PyQt6.
+PySolarSim este o aplicație modernă pentru simularea și explorarea unui sistem solar 3D, cu accent pe interactivitate, realism și un UI minimalist, modern.
 
-## Features
+## Caracteristici principale
 
-- 3D visualization of a basic solar system
-- Real-time orbital motion simulation
-- Interactive camera controls (mouse, keyboard, UI)
-- Basic planet information display
+- **Vizualizare 3D a sistemului solar** cu Soarele, toate cele 8 planete și Pluto
+- **Luna** orbitează corect Pământul
+- **Inele pentru Saturn**
+- **Traiectorii orbitale vizibile** (cu opțiune de on/off)
+- **Poziții inițiale realiste și randomizate pentru planete**
+- **Umbre 3D realiste** pe planete, în funcție de Soare
+- **Moduri de cameră multiple**:
+  - Free Camera (control total cu mouse/tastatură/slider)
+  - Follow Planet (urmărește orice planetă sau Luna)
+  - Top View (vedere de sus)
+  - Lateral View (vedere laterală)
+  - Oblic View (vedere diagonală)
+- **UI modern, minimalist, cu accente moderne**
+- **Selectare și afișare informații pentru orice corp ceresc**
+- **Control viteză simulare, iluminare, zoom, rotație, etc.**
 
-## Requirements
+## Instalare
 
-- Python 3.x
-- PyOpenGL
-- PyQt6
-- NumPy
-
-## Installation
-
-1. Clone the repository:
+1. Clonează repository-ul:
 ```bash
 git clone https://github.com/yourusername/PySolarSim.git
 cd PySolarSim
 ```
-
-2. Create a virtual environment (recommended):
+2. Creează un mediu virtual (recomandat):
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Pe Windows: .venv\Scripts\activate
 ```
-
-3. Install dependencies:
+3. Instalează dependențele:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Running the Application
+## Rulare
 
-To start the simulation, run:
+Pornește aplicația cu:
 ```bash
 python -m src.main
 ```
 
-## Controls
+## Controale și interacțiune
 
-### Camera Controls (Mouse & Keyboard)
+### Moduri de cameră
+- **Free Camera:**
+  - Rotește cu mouse-ul (drag stânga)
+  - Zoom cu scroll sau slider
+  - Rotește și cu tastele W/S/A/D sau săgeți, Q/E pentru axa Z
+- **Follow Planet:**
+  - Camera urmărește planeta selectată (sau Luna)
+  - Distanța de follow se ajustează cu slider sau scroll
+- **Top View / Lateral View / Oblic View:**
+  - Vederi presetate pentru explorare rapidă
+  - Zoom cu slider sau scroll
 
-- **Mouse Drag (stânga apăsat):** rotește camera (X/Y) în modul Free Camera
-- **Scroll Mouse:** zoom in/out (în Free Camera/Top View: distanță, în Follow Planet: offset față de planetă)
-- **Tastele W/S/A/D sau Săgeți:** rotește camera (sus/jos/stânga/dreapta)
-- **Q/E:** rotește camera pe axa Z
-- **+/- sau PageUp/PageDown:** zoom in/out (sau modifică distanța de follow)
-- **Toate aceste controale sunt sincronizate cu slider-ele din UI**
+### UI și funcționalități
+- **Dropdown pentru selectarea oricărui corp ceresc** (planete, Pluto, Luna)
+- **Afișare informații detaliate** pentru corpul selectat
+- **Buton Play/Pause** pentru simulare
+- **Slider viteză simulare**
+- **Control iluminare ambientală și difuză**
+- **Checkbox "Show Orbits"** pentru a afișa/ascunde traiectoriile orbitale
+- **Toate controalele sunt sincronizate între mouse, tastatură și UI**
 
-### View Mode
+### Alte detalii
+- **Poziții inițiale randomizate** pentru realism
+- **Umbre 3D pe planete** (partea de noapte)
+- **Inele pentru Saturn**
+- **UI minimalist, modern, cu accente albastre**
 
-- **Free Camera:** control total cu mouse/tastatură/slider-e
-- **Follow Planet:** camera urmărește planeta selectată, distanța se ajustează cu slider sau scroll/+/–
-- **Top View:** vedere de sus, zoom cu slider sau scroll/+/–
-
-### Alte controale
-
-- Play/Pause pentru simulare
-- Viteză simulare
-- Control iluminare
-- Selectare și informații corp ceresc
-
-## Project Structure
+## Structura proiectului
 
 ```
 PySolarSim/
 ├── src/
-│   ├── main.py              # Application entry point
-│   ├── simulation/          # Simulation logic
+│   ├── main.py              # Punct de pornire aplicație
+│   ├── simulation/          # Logica simulării
 │   │   ├── celestial_bodies.py
 │   │   └── solar_system.py
-│   └── ui/                  # User interface
+│   └── ui/                  # Interfața grafică
 │       └── main_window.py
 ├── requirements.txt
+├── style.qss                # Tema modernă a interfeței
 └── README.md
-```
-
-## Contributing
-
-Feel free to submit issues and enhancement requests! 
+``` 
