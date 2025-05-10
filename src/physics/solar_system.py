@@ -52,18 +52,18 @@ class SolarSystem:
     def update(self, dt: float):
         """Update the positions and velocities of all bodies"""
         # Calculate forces
-        forces = {body: np.zeros(3) for body in self.bodies}
+        forces = [np.zeros(3) for _ in self.bodies]
         
         for i, body1 in enumerate(self.bodies):
-            for body2 in self.bodies[i+1:]:
+            for j, body2 in enumerate(self.bodies[i+1:], i+1):
                 force = self.calculate_gravitational_force(body1, body2)
-                forces[body1] += force
-                forces[body2] -= force
+                forces[i] += force
+                forces[j] -= force
                 
         # Update positions and velocities
-        for body in self.bodies:
+        for i, body in enumerate(self.bodies):
             # F = ma -> a = F/m
-            acceleration = forces[body] / body.mass
+            acceleration = forces[i] / body.mass
             
             # Update velocity using acceleration
             body.velocity += acceleration * dt
