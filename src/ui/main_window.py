@@ -110,6 +110,28 @@ class GLWidget(QOpenGLWidget):
         glEnd()
         glLineWidth(1.0)
 
+    def draw_saturn_rings(self, radius):
+        glPushAttrib(GL_ENABLE_BIT)
+        glDisable(GL_LIGHTING)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glColor4f(0.8, 0.8, 0.5, 0.4)
+        inner = radius * 1.3
+        outer = radius * 2.2
+        glBegin(GL_TRIANGLE_STRIP)
+        for i in range(65):
+            angle = 2 * math.pi * i / 64
+            x_in = math.cos(angle) * inner
+            y_in = math.sin(angle) * inner
+            x_out = math.cos(angle) * outer
+            y_out = math.sin(angle) * outer
+            glVertex3f(x_in, y_in, 0)
+            glVertex3f(x_out, y_out, 0)
+        glEnd()
+        glDisable(GL_BLEND)
+        glEnable(GL_LIGHTING)
+        glPopAttrib()
+
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
@@ -172,6 +194,9 @@ class GLWidget(QOpenGLWidget):
                 glEnable(GL_LIGHTING)
             
             self.draw_sphere(body.radius)
+            # Draw Saturn's rings if this is Saturn
+            if body.name.lower() == 'saturn':
+                self.draw_saturn_rings(body.radius)
             # Draw satellites (e.g., Moon for Earth)
             for moon in self.solar_system.get_satellites(body.name):
                 glPushMatrix()
