@@ -107,9 +107,11 @@ class SolarSystem:
             rotation_period=6.39  # Earth days
         )
         
-        self.bodies.extend([
-            mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto
-        ])
+        z_offsets = [0.0, 0.2, -0.2, 0.4, -0.4, 0.6, -0.6, 0.8, -0.8]  # For 8 planets + Pluto
+        planet_list = [mercury, venus, earth, mars, jupiter, saturn, uranus, neptune, pluto]
+        for i, planet in enumerate(planet_list):
+            planet.z_offset = z_offsets[i]
+        self.bodies.extend(planet_list)
         # Add the Moon as a satellite of Earth
         self.satellites = {"Earth": []}
         moon = CelestialBody(
