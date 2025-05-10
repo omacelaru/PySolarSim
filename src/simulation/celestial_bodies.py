@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 class CelestialBody:
     def __init__(self, name, radius, distance, color, orbital_period=1.0, 
@@ -11,7 +12,7 @@ class CelestialBody:
         self.orbital_inclination = orbital_inclination
         self.rotation_period = rotation_period
         self.mass = mass
-        self.angle = 0.0
+        self.angle = random.uniform(0, 2 * np.pi)  # Random initial position
         self.rotation_angle = 0.0
         
     def update(self, delta_time):
