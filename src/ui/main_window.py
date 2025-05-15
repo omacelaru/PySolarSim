@@ -713,7 +713,16 @@ class MainWindow(QMainWindow):
         # Follow distance slider
         self.follow_dist_label.setVisible(is_follow)
         self.follow_dist_slider.setVisible(is_follow)
-        
+        for i in range(self.follow_dist_layout.count()):
+            widget = self.follow_dist_layout.itemAt(i).widget()
+            if widget:
+                widget.setVisible(is_follow)
+        # When switching to Free Camera, sync sliders to current camera values
+        if is_free:
+            self.dist_slider.setValue(int(self.gl_widget.camera_distance))
+            self.rot_x_slider.setValue(int(self.gl_widget.camera_rotation_x))
+            self.rot_y_slider.setValue(int(self.gl_widget.camera_rotation_y))
+            self.rot_z_slider.setValue(int(self.gl_widget.camera_rotation_z))
 
     def change_follow_distance(self, value):
         self.gl_widget.set_follow_distance(value)
