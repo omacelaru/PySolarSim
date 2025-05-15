@@ -15,16 +15,7 @@ class CelestialBody:
         self.angle = random.uniform(0, 2 * np.pi)  # Random initial position
         self.rotation_angle = 0.0
         
-    def update(self, delta_time):
-        # Update orbital position
-        self.angle += (2 * np.pi / self.orbital_period) * delta_time
-        if self.angle > 2 * np.pi:
-            self.angle -= 2 * np.pi
-            
-        # Update rotation
-        self.rotation_angle += (2 * np.pi / self.rotation_period) * delta_time
-        if self.rotation_angle > 2 * np.pi:
-            self.rotation_angle -= 2 * np.pi
+    
             
     def get_position(self):
         # Calculate current position based on orbital parameters
